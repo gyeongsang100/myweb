@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대구 경상여자고등학교 급식 메뉴</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .meal-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .meal-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* 로딩 스피너 애니메이션 */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-100 p-2 rounded-xl text-blue-600">
+                    <i data-lucide="utensils" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">경상여자고등학교 급식</h1>
+                    <p class="text-xs text-gray-500">대구광역시 북구</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-4xl mx-auto w-full px-4 py-8">
+        
+        <!-- Controls -->
+        <div class="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="relative w-full sm:w-auto">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    <input type="date" id="datePicker" 
+                        class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 outline-none transition-colors cursor-pointer font-medium">
+                </div>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button id="prevDayBtn" class="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> 이전
+                </button>
+                <button id="todayBtn" class="flex-1 sm:flex-none bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-3 rounded-xl text-sm font-medium transition-colors">
+                    오늘
+                </button>
+                <button id="nextDayBtn" class="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1">
+                    다음 <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Status & Title -->
+        <div class="mb-6 flex justify-between items-end">
+            <h2 id="displayDateText" class="text-2xl font-bold text-gray-800"></h2>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden flex-col items-center justify-center py-20">
+            <div class="spinner mb-4"></div>
+            <p class="text-gray-500 font-medium">급식 정보를 불러오는 중입니다...</p>
+        </div>
+
+        <!-- Error / Empty State -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100 border-dashed">
+            <div class="bg-gray-50 p-4 rounded-full mb-4 text-gray-400">
+                <i data-lucide="inbox" class="w-10 h-10"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-700 mb-1">급식 정보가 없습니다.</h3>
+            <p class="text-gray-500 text-sm text-center">주말, 공휴일이거나 아직 식단이 등록되지 않은 날짜일 수 있습니다.</p>
+        </div>
+
+        <!-- Meal Cards Grid -->
+        <div id="mealGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Cards will be injected here by JS -->
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto py-6">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <p class="text-xs text-gray-400 mb-2">본 데이터는 교육부 나이스(NEIS) 교육정보 개방 포털의 공공 데이터를 실시간으로 가공하여 제공합니다.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Lucide 아이콘 초기화
+        lucide.createIcons();
+
+        // 상태 관리
+        const state = {
+            currentDate: new Date(),
+            schoolCode: '',
+            officeCode: 'D10', // 대구광역시교육청 코드
+            schoolName: '경상여자고등학교',
+            isLoading: false
+        };
+
+        // DOM 요소
+        const els = {
+            datePicker: document.getElementById('datePicker'),
+            todayBtn: document.getElementById('todayBtn'),
+            prevDayBtn: document.getElementById('prevDayBtn'),
+            nextDayBtn: document.getElementById('nextDayBtn'),
+            displayDateText: document.getElementById('displayDateText'),
+            loadingState: document.getElementById('loadingState'),
+            emptyState: document.getElementById('emptyState'),
+            mealGrid: document.getElementById('mealGrid')
+        };
+
+        // 유틸리티: 날짜 객체를 YYYY-MM-DD 포맷으로 변환
+        const formatDateToString = (date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+
+        // 유틸리티: 날짜 객체를 YYYYMMDD 포맷으로 변환 (API용)
+        const formatDateToAPI = (date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}${m}${d}`;
+        };
+
+        // 유틸리티: 요일 포함 한글 날짜 문자열
+        const getKoreanDateString = (date) => {
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            const y = date.getFullYear();
+            const m = date.getMonth() + 1;
+            const d = date.getDate();
+            const dayName = days[date.getDay()];
+            return `${y}년 ${m}월 ${d}일 (${dayName})`;
+        };
+
+        // 문자열 다듬기 (알레르기 번호 등 제거, 괄호 처리 등 깔끔하게)
+        const cleanMealName = (name) => {
+            // "밥 1.2.3." 과 같이 끝에 붙는 알레르기 유발물질 번호 제거
+            let clean = name.replace(/([0-9]+\.)+$/g, '');
+            // 괄호 안의 원산지 정보나 불필요한 공백 정리
+            clean = clean.trim();
+            // 끝에 남는 특수문자(*) 제거
+            clean = clean.replace(/\*+$/g, '');
+            return clean;
+        };
+
+        // NEIS API: 학교 코드 가져오기 (초기 1회)
+        const fetchSchoolCode = async () => {
+            if (state.schoolCode) return true;
+            
+            try {
+                const url = `https://open.neis.go.kr/hub/schoolInfo?Type=json&SCHUL_NM=${encodeURIComponent(state.schoolName)}&ATPT_OFCDC_SC_CODE=${state.officeCode}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.schoolInfo && data.schoolInfo[1].row.length > 0) {
+                    state.schoolCode = data.schoolInfo[1].row[0].SD_SCHUL_CODE;
+                    return true;
+                }
+                throw new Error("학교 정보를 찾을 수 없습니다.");
+            } catch (error) {
+                console.error("학교 코드 조회 실패:", error);
+                return false;
+            }
+        };
+
+        // NEIS API: 급식 정보 가져오기
+        const fetchMealData = async (dateObj) => {
+            if (!await fetchSchoolCode()) {
+                showEmptyState();
+                return;
+            }
+
+            setLoading(true);
+            const apiDate = formatDateToAPI(dateObj);
+            
+            try {
+                const url = `https://open.neis.go.kr/hub/mealServiceDietInfo?Type=json&ATPT_OFCDC_SC_CODE=${state.officeCode}&SD_SCHUL_CODE=${state.schoolCode}&MLSV_YMD=${apiDate}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.mealServiceDietInfo && data.mealServiceDietInfo[1].row.length > 0) {
+                    renderMeals(data.mealServiceDietInfo[1].row);
+                } else {
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error("급식 정보 조회 실패:", error);
+                showEmptyState();
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        // UI 렌더링: 급식 카드 생성
+        const renderMeals = (meals) => {
+            els.emptyState.classList.add('hidden');
+            els.mealGrid.innerHTML = '';
+
+            // 조식, 중식, 석식 순서 보장 정렬
+            const sortedMeals = meals.sort((a, b) => parseInt(a.MMEAL_SC_CODE) - parseInt(b.MMEAL_SC_CODE));
+
+            sortedMeals.forEach(meal => {
+                const mealType = meal.MMEAL_SC_NM; // 조식, 중식, 석식
+                const rawMenu = meal.DDISH_NM.split('<br/>'); // 메뉴 배열
+                const calories = meal.CAL_INFO; // 칼로리
+
+                // 아이콘 및 색상 설정
+                let iconName = 'utensils';
+                let colorClass = 'text-gray-600 bg-gray-100';
+                let headerBg = 'bg-white';
+                let borderClass = 'border-gray-200';
+
+                if (mealType === '조식') {
+                    iconName = 'sunrise';
+                    colorClass = 'text-amber-600 bg-amber-100';
+                    borderClass = 'border-amber-100';
+                    headerBg = 'bg-amber-50/50';
+                } else if (mealType === '중식') {
+                    iconName = 'sun';
+                    colorClass = 'text-blue-600 bg-blue-100';
+                    borderClass = 'border-blue-100';
+                    headerBg = 'bg-blue-50/50';
+                } else if (mealType === '석식') {
+                    iconName = 'moon';
+                    colorClass = 'text-indigo-600 bg-indigo-100';
+                    borderClass = 'border-indigo-100';
+                    headerBg = 'bg-indigo-50/50';
+                }
+
+                // 메뉴 리스트 HTML 생성
+                const menuHtml = rawMenu.map(item => {
+                    return `<li class="flex items-start gap-2 py-1.5 border-b border-gray-50 last:border-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-300 mt-2 flex-shrink-0"></span>
+                                <span class="text-gray-700 font-medium">${cleanMealName(item)}</span>
+                            </li>`;
+                }).join('');
+
+                const cardHtml = `
+                    <div class="meal-card bg-white rounded-2xl border ${borderClass} overflow-hidden flex flex-col h-full">
+                        <div class="p-4 ${headerBg} border-b ${borderClass} flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="p-2 rounded-lg ${colorClass}">
+                                    <i data-lucide="${iconName}" class="w-5 h-5"></i>
+                                </div>
+                                <h3 class="font-bold text-lg text-gray-800">${mealType}</h3>
+                            </div>
+                            <span class="text-xs font-semibold px-2.5 py-1 bg-white rounded-full text-gray-500 shadow-sm border border-gray-100">
+                                ${calories}
+                            </span>
+                        </div>
+                        <div class="p-5 flex-grow bg-white">
+                            <ul class="space-y-1">
+                                ${menuHtml}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                
+                els.mealGrid.insertAdjacentHTML('beforeend', cardHtml);
+            });
+
+            // 새롭게 추가된 아이콘 렌더링
+            lucide.createIcons();
+        };
+
+        // UI 상태 관리
+        const setLoading = (isLoading) => {
+            state.isLoading = isLoading;
+            if (isLoading) {
+                els.loadingState.classList.remove('hidden');
+                els.emptyState.classList.add('hidden');
+                els.mealGrid.innerHTML = '';
+            } else {
+                els.loadingState.classList.add('hidden');
+            }
+        };
+
+        const showEmptyState = () => {
+            els.emptyState.classList.remove('hidden');
+            els.mealGrid.innerHTML = '';
+        };
+
+        // 날짜 변경 핸들러
+        const updateDate = (newDate) => {
+            state.currentDate = new Date(newDate);
+            els.datePicker.value = formatDateToString(state.currentDate);
+            els.displayDateText.textContent = getKoreanDateString(state.currentDate);
+            fetchMealData(state.currentDate);
+        };
+
+        // 이벤트 리스너 설정
+        els.datePicker.addEventListener('change', (e) => {
+            if (e.target.value) {
+                updateDate(new Date(e.target.value));
+            }
+        });
+
+        els.todayBtn.addEventListener('click', () => {
+            updateDate(new Date());
+        });
+
+        els.prevDayBtn.addEventListener('click', () => {
+            const prev = new Date(state.currentDate);
+            prev.setDate(prev.getDate() - 1);
+            updateDate(prev);
+        });
+
+        els.nextDayBtn.addEventListener('click', () => {
+            const next = new Date(state.currentDate);
+            next.setDate(next.getDate() + 1);
+            updateDate(next);
+        });
+
+        // 초기 실행
+        const init = () => {
+            updateDate(new Date()); // 오늘 날짜로 시작
+        };
+
+        init();
+    </script>
+</body>
+</html>
